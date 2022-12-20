@@ -5,23 +5,40 @@ library(magick)
 
 ## ui.R
 ui <- fluidPage(
+  shinyjs::useShinyjs(),
   titlePanel("Duster", windowTitle = "Photo Duster"),
   verticalLayout(
     inputPanel(
       fileInput("file1", "Choose .jpg file", accept = ".jpg"),
-      checkboxInput("showOriginal", "Show original", FALSE)
+      checkboxInput("showOriginal", "Show original", FALSE),
+      sliderInput("zoom", "Zoom", min = 1, max = 400, 
+                  value = 100, post = "%"),
+      actionButton("reset", "Reset")
     ),
-    plotOutput("p1"),
-    conditionalPanel(
-      condition = "input.showOriginal",
-      titlePanel("Original:"),
-      plotOutput("p0")
+    fluidRow(
+      shinydashboard::box(width = 12, 
+                          style='width:800px;overflow-x: scroll;height:500px;overflow-y: scroll;',
+                          plotOutput("p1", width = "100%")
+      )),
+    fluidRow(
+      conditionalPanel(
+        condition = "input.showOriginal",
+        titlePanel("Original:"),
+        shinydashboard::box(width = 12, 
+                            style='width:800px;overflow-x: scroll;height:500px;overflow-y: scroll;',
+                            plotOutput("p0", width = "100%")
+        )
+      )
     )
   )
 )
 
 ## server.R
 server <- function(input, output, session){
+  
+  observeEvent(input$reset, {
+    shinyjs::reset("zoom")
+  })
   
   #get image and its metadata
   i_raw <- reactive({
@@ -40,7 +57,7 @@ server <- function(input, output, session){
   })
 
   # a function factory to conveniently get out an images dimension
-  img_dim_f <- function(parm) {
+  img_dim_f <- function(parm, min_pix = 40) {
     function() {
       p <- 0
       i <- req(i_final())
@@ -49,7 +66,9 @@ server <- function(input, output, session){
           p <- i[[parm]]
         }
       }
-      p
+      z <- req(input$zoom)
+      # zoom, keep integer and not smaller than min_pix (some distortion possible)
+      max(ceiling(p * z/100), min_pix)
     }
   }
   
