@@ -6,7 +6,7 @@ library(magick)
 ## ui.R
 ui <- fluidPage(
   shinyjs::useShinyjs(),
-  titlePanel("Duster", windowTitle = "Photo Duster"),
+  titlePanel("Photo Duster", windowTitle = "Photo Duster"),
   verticalLayout(
     inputPanel(
       fileInput("file1", "Choose .jpg file", accept = ".jpg"),
