@@ -21,6 +21,8 @@ ui <- fluidPage(
                   value = 1.8, post = "px", step = 0.2),
       sliderInput("threshold", "Threshold", min = 1, max = 10,
                   value = 7, post = "%"),
+      sliderInput("trim", "Edge trim fuzz", min = 0, max = 50,
+                  value = 0),
       actionButton("reset", "Reset")
     ),
     fluidRow(
@@ -120,7 +122,7 @@ server <- function(input, output, session){
     img_list(img) #result
   })
   
-  i_final <- reactive({
+  i_comp <- reactive({
     req(i_raw(), i_mask(), input$md_radius)
     i <- i_raw()
     img1 <- i$img |> 
@@ -133,6 +135,14 @@ server <- function(input, output, session){
       image_composite(img1, operator = "atop") 
 
     img_list(img) #result
+  })
+  
+  i_final <- reactive({
+    req(i_comp(), input$trim)
+    i <- i_comp()
+    img <- i$img |> 
+        image_trim(fuzz = input$trim) 
+    img_list(img)
   })
 
   # default params
