@@ -8,22 +8,29 @@ ui <- fluidPage(
   shinyjs::useShinyjs(),
   titlePanel("Photo Duster", windowTitle = "Photo Duster"),
   verticalLayout(
-    inputPanel(
-      fileInput("file1", "Choose .jpg file", accept = ".jpg"),
-      checkboxInput("showDust", "Show dust", TRUE),
-      checkboxInput("showOriginal", "Show original", FALSE),
-      sliderInput("zoom", "Image Zoom", min = 1, max = 400, 
-                  value = 80, post = "%"),
-      sliderInput("md_radius", "Md Radius", min = 2, max = 15,
-                  value = 6, post = "px"),
-      # this should force avoidance of whole numbers
-      sliderInput("k_radius", "Kernel Radius", min = 1.0, max = 10.0,
-                  value = 1.8, post = "px", step = 0.2),
-      sliderInput("threshold", "Threshold", min = 1, max = 10,
-                  value = 7, post = "%"),
-      sliderInput("trim", "Edge trim fuzz", min = 0, max = 50,
-                  value = 0),
-      actionButton("reset", "Reset")
+    fluidRow(
+      column(4, 
+             inputPanel(
+               fileInput("file1", "Choose .jpg file", accept = ".jpg"),
+               checkboxInput("showDust", "Show dust", TRUE),
+               checkboxInput("showOriginal", "Show original", FALSE),
+               sliderInput("zoom", "Image Zoom", min = 1, max = 400, 
+                           value = 80, post = "%"),
+               downloadButton("download", "Download dusted image")
+             )),
+      column(8,
+             inputPanel(
+               sliderInput("md_radius", "Md Radius", min = 2, max = 15,
+                           value = 6, post = "px"),
+               # this should force avoidance of whole numbers
+               sliderInput("k_radius", "Kernel Radius", min = 1.0, max = 10.0,
+                           value = 1.8, post = "px", step = 0.2),
+               sliderInput("threshold", "Threshold", min = 1, max = 10,
+                           value = 7, post = "%"),
+               sliderInput("trim", "Edge trim fuzz", min = 0, max = 50,
+                           value = 0),
+               actionButton("reset", "Reset")
+             )),
     ),
     fluidRow(
       shinydashboard::box(width = 12, 
@@ -68,6 +75,7 @@ server <- function(input, output, session){
     shinyjs::reset("md_radius")
     shinyjs::reset("k_radius")
     shinyjs::reset("threshold")
+    shinyjs::reset("trim")
   })
   
   #get image and its metadata
@@ -78,6 +86,7 @@ server <- function(input, output, session){
     img <- image_read(i_file) |> 
       image_convert("png")
     
+    # cat(file=stderr(), input$file1$datapath, input$file1$name)
     img_list(img) #result
   })
 
@@ -159,6 +168,15 @@ server <- function(input, output, session){
   output$p1 <- i_renderPlot({
       plot(i_final()$img)
     })
+  
+  output$download <- downloadHandler(
+    filename = function() {
+      paste0(stringr::str_remove(input$file1$name, ".jpg"), "_dusted.jpg")
+    },
+    content = function(file) {
+      image_write(i_final()$img, file, format = "jpg")
+    }
+  )
   
   return(output)
 }
