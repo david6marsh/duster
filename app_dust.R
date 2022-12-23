@@ -23,9 +23,9 @@ ui <- fluidPage(
                sliderInput("md_radius", "Md Radius", min = 2, max = 15,
                            value = 6, post = "px"),
                # this should force avoidance of whole numbers
-               sliderInput("k_radius", "Kernel Radius", min = 1.0, max = 10.0,
-                           value = 1.8, post = "px", step = 0.2),
-               sliderInput("threshold", "Threshold", min = 1, max = 10,
+               sliderInput("k_radius", "Kernel Radius", min = 1.0, max = 7.0,
+                           value = 1.8, post = "px", step = 0.3),
+               sliderInput("threshold", "Threshold", min = 1, max = 12,
                            value = 7, post = "%"),
                sliderInput("trim", "Edge trim fuzz", min = 0, max = 50,
                            value = 0),
@@ -90,6 +90,22 @@ server <- function(input, output, session){
     img_list(img) #result
   })
 
+  i_trim <- reactive({
+    req(i_raw(), input$trim)
+    img <- i_raw()$img |> 
+      # trim black edges (not just black due to jpeg)
+      image_trim(fuzz = input$trim) 
+    img_list(img)
+  })
+  
+  i_md <- reactive({
+    req(i_trim(), input$md_radius)
+    img <- i_trim()$img |> 
+      # smoothing
+      image_median(radius = input$md_radius)  
+    img_list(img)
+  })
+  
   # a function factory to conveniently get out an images dimension
   img_dim_f <- function(parm, min_pix = 40) {
     function() {
@@ -119,39 +135,30 @@ server <- function(input, output, session){
   # }
   # 
   i_mask <- reactive({
-    req(i_raw(), input$k_radius, input$threshold)
-    i <- i_raw()
+    req(i_trim(), input$k_radius, input$threshold)
+    i <- i_trim()
     # find peaks
     img <- i$img |> 
       image_morphology("bottomhat", stringr::str_c("disk:", 
                                                    round(input$k_radius, 1))) |> 
       image_threshold(threshold = stringr::str_c(input$threshold, "%"),
-                      type = "white")
+                      type = "white") |> 
+      # dilate by a pixel. default rectangle is a 3x3-pixel square
+      image_morphology("dilate", "rectangle")
     
     img_list(img) #result
   })
   
-  i_comp <- reactive({
-    req(i_raw(), i_mask(), input$md_radius)
-    i <- i_raw()
-    img1 <- i$img |> 
-      # smoothing
-      image_median(radius = input$md_radius) |> 
+  i_final <- reactive({
+    req(i_trim(), i_md(), i_mask())
+    img1 <- i_md()$img |> 
       # just the mask bit of this
       image_composite(i_mask()$img, operator = "CopyOpacity")
    # combine
-    img <- i$img |>
+    img <- i_trim()$img |>
       image_composite(img1, operator = "atop") 
 
     img_list(img) #result
-  })
-  
-  i_final <- reactive({
-    req(i_comp(), input$trim)
-    i <- i_comp()
-    img <- i$img |> 
-        image_trim(fuzz = input$trim) 
-    img_list(img)
   })
 
   # default params
@@ -180,8 +187,6 @@ server <- function(input, output, session){
   
   return(output)
 }
-
-
 
 
 ### Run Application
