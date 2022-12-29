@@ -15,20 +15,25 @@ ui <- fluidPage(
                checkboxInput("showDust", "Show dust", TRUE),
                checkboxInput("showOriginal", "Show original", FALSE),
                sliderInput("zoom", "Image Zoom", min = 1, max = 400, 
-                           value = 80, post = "%"),
+                           value = 100, post = "%"),
                downloadButton("download", "Download dusted image")
              )),
       column(8,
              inputPanel(
-               sliderInput("md_radius", "Md Radius", min = 2, max = 15,
-                           value = 6, post = "px"),
+               sliderInput("md_radius", "Replacement Radius", min = 2, max = 15,
+                           value = 8, post = "px"),
                # this should force avoidance of whole numbers
-               sliderInput("k_radius", "Kernel Radius", min = 1.0, max = 7.0,
-                           value = 1.8, post = "px", step = 0.3),
-               sliderInput("threshold", "Threshold", min = 1, max = 12,
-                           value = 7, post = "%"),
-               sliderInput("trim", "Edge trim fuzz", min = 0, max = 50,
-                           value = 0),
+               # sliderInput("k_radius", "Detection Radius", min = 1.0, max = 7.0,
+               #             value = 2.0, post = "px", step = 0.3), 
+               # for radius, there are really only discrete options, 
+               # see https://imagemagick.org/Usage/morphology/#disk
+               selectInput("k_radius", "Detection Radius", 
+                           choices = c(1, 1.5, 2.0, 2.5, 2.9, 3.5, 3.9, 4.3, 4.5, 5.3),
+                           selected = 2.0, width = "50%"),
+               sliderInput("threshold", "Detection Threshold", min = 1, max = 15,
+                           value = 13, post = "%"),
+               sliderInput("trim", "Edge crop sensitivity", min = 0, max = 50,
+                           value = 30),
                actionButton("reset", "Reset")
              )),
     ),
@@ -90,6 +95,7 @@ server <- function(input, output, session){
     img_list(img) #result
   })
 
+  # first remove any unwanted border
   i_trim <- reactive({
     req(i_raw(), input$trim)
     img <- i_raw()$img |> 
@@ -98,6 +104,7 @@ server <- function(input, output, session){
     img_list(img)
   })
   
+  # smoothed image, for filling in with
   i_md <- reactive({
     req(i_trim(), input$md_radius)
     img <- i_trim()$img |> 
@@ -110,37 +117,27 @@ server <- function(input, output, session){
   img_dim_f <- function(parm, min_pix = 40) {
     function() {
       p <- 0
-      i <- req(i_raw())
+      i <- req(i_trim())
       if (isTruthy(i)) {
         if (isTruthy(i[[parm]])) {
           p <- i[[parm]]
         }
       }
+      # scale is fit image to window height
+      sc <- 600/i$h #400 pix is height defined above
       z <- req(input$zoom)
       # zoom, keep integer and not smaller than min_pix (some distortion possible)
-      max(ceiling(p * z/100), min_pix)
+      max(ceiling(p * sc * z/100), min_pix)
     }
   }
   
-  # i_renderPlot <- function(i_fn){
-  #     renderPlot(
-  #       expr = {
-  #         i <- req(i_fn())
-  #         img <- req(i$img)
-  #         plot(img)
-  #       },
-  #       width = img_dim_f("w"),
-  #       height = img_dim_f("h")
-  #     )
-  # }
-  # 
+  # create the dust mask
   i_mask <- reactive({
     req(i_trim(), input$k_radius, input$threshold)
-    i <- i_trim()
     # find peaks
-    img <- i$img |> 
+    img <- i_trim()$img |> 
       image_morphology("bottomhat", stringr::str_c("disk:", 
-                                                   round(input$k_radius, 1))) |> 
+                                                   round(as.numeric(input$k_radius), 1))) |> 
       image_threshold(threshold = stringr::str_c(input$threshold, "%"),
                       type = "white") |> 
       # dilate by a pixel. default rectangle is a 3x3-pixel square
