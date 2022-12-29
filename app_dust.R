@@ -9,56 +9,65 @@ ui <- fluidPage(
   titlePanel("Photo Duster", windowTitle = "Photo Duster"),
   verticalLayout(
     fluidRow(
-      column(4, 
+      column(12,
              inputPanel(
-               fileInput("file1", "Choose .jpg file", accept = ".jpg"),
-               checkboxInput("showDust", "Show dust", TRUE),
-               checkboxInput("showOriginal", "Show original", FALSE),
-               sliderInput("zoom", "Image Zoom", min = 1, max = 400, 
-                           value = 100, post = "%"),
-               downloadButton("download", "Download dusted image")
-             )),
-      column(8,
-             inputPanel(
-               sliderInput("md_radius", "Replacement Radius", min = 2, max = 15,
-                           value = 8, post = "px"),
-               # this should force avoidance of whole numbers
-               # sliderInput("k_radius", "Detection Radius", min = 1.0, max = 7.0,
-               #             value = 2.0, post = "px", step = 0.3), 
                # for radius, there are really only discrete options, 
                # see https://imagemagick.org/Usage/morphology/#disk
+               sliderInput("trim", "Edge crop strength", min = 0, max = 50,
+                           value = 25),
                selectInput("k_radius", "Detection Radius", 
                            choices = c(1, 1.5, 2.0, 2.5, 2.9, 3.5, 3.9, 4.3, 4.5, 5.3),
-                           selected = 2.0, width = "50%"),
-               sliderInput("threshold", "Detection Threshold", min = 1, max = 15,
-                           value = 13, post = "%"),
-               sliderInput("trim", "Edge crop sensitivity", min = 0, max = 50,
-                           value = 30),
+                           selected = 2.9, width = "50%"),
+               sliderInput("threshold", "Detection Threshold", min = 1, max = 25,
+                           value = 19, post = "%", step = 1.0),
+               sliderInput("md_radius", "Replacement Radius", min = 2, max = 15,
+                           value = 8, post = "px"),
                actionButton("reset", "Reset")
              )),
     ),
-    fluidRow(
-      shinydashboard::box(width = 12, 
-                          style='width:600px;overflow-x: scroll;height:400px;overflow-y: scroll;',
-                          plotOutput("p1", width = "100%")
-      )),
-    fluidRow(
-      conditionalPanel(
-        condition = "input.showOriginal",
-        titlePanel("Original:"),
-        shinydashboard::box(width = 12, 
-                            style='width:600px;overflow-x: scroll;height:400px;overflow-y: scroll;',
-                            plotOutput("p0", width = "100%"))
-      )),
-    fluidRow(
-      conditionalPanel(
-        condition = "input.showDust",
-        titlePanel("Dust:"),
-        shinydashboard::box(width = 12, 
-                            style='width:600px;overflow-x: scroll;height:400px;overflow-y: scroll;',
-                            plotOutput("pd", width = "100%"))
-      ))
-  )
+    tabsetPanel(type = "tabs",
+                tabPanel("Single",
+                         column(12, 
+                                inputPanel(
+                                  fileInput("file1", "Upload .jpg file", accept = ".jpg"),
+                                  checkboxInput("showDust", "Show dust", TRUE),
+                                  checkboxInput("showOriginal", "Show original", FALSE),
+                                  sliderInput("zoom", "Image Zoom", min = 1, max = 400, 
+                                              value = 100, post = "%"),
+                                  downloadButton("download", "Download dusted image")
+                                )),
+                         fluidRow(
+                           shinydashboard::box(width = 12, 
+                                               style='width:600px;overflow-x: scroll;height:400px;overflow-y: scroll;',
+                                               plotOutput("p1", width = "100%")
+                           )),
+                         fluidRow(
+                           conditionalPanel(
+                             condition = "input.showOriginal",
+                             strong("Original:"),
+                             shinydashboard::box(width = 12, 
+                                                 style='width:600px;overflow-x: scroll;height:400px;overflow-y: scroll;',
+                                                 plotOutput("p0", width = "100%"))
+                           )),
+                         fluidRow(
+                           conditionalPanel(
+                             condition = "input.showDust",
+                             strong("Dust:"),
+                             shinydashboard::box(width = 6, 
+                                                 style='width:600px;overflow-x: scroll;height:400px;overflow-y: scroll;',
+                                                 plotOutput("pd", width = "100%"))
+                           ))
+                ),
+    tabPanel("Instructions",
+             strong("How to use the single-image tool."),
+             p("1. Upload a jpeg. It will be shown, together with the dust detected using the default settings."),
+             p("2. If there is a 'black' border, it will be mostly removed. If too much is being removed, reduce the edge crop strength."),
+             p("3. Check the dust. If not enough is being found, increase the detection radius or reduce the detection threshold. It's likely that some larger pieces will escape"),
+             p("4. Check the dust again. If it is showing real structure from the image (eg mouth, fabric texture), increase the detection threshold."),
+             p("5. When you're happy, download the image to your browser's default download folder."),
+             p("Reset: returns to default values.")
+    )
+    ))
 )
 
 img_list <- function(img){
