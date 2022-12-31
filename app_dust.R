@@ -8,55 +8,46 @@ ui <- fluidPage(
   shinyjs::useShinyjs(),
   titlePanel("Photo Duster", windowTitle = "Photo Duster"),
   verticalLayout(
-    fluidRow(
-      column(12,
-             inputPanel(
-               # for radius, there are really only discrete options, 
-               # see https://imagemagick.org/Usage/morphology/#disk
-               sliderInput("trim", "Edge crop strength", min = 0, max = 50,
-                           value = 25),
-               selectInput("k_radius", "Detection Radius", 
-                           choices = c(1, 1.5, 2.0, 2.5, 2.9, 3.5, 3.9, 4.3, 4.5, 5.3),
-                           selected = 2.9, width = "50%"),
-               sliderInput("threshold", "Detection Threshold", min = 1, max = 25,
-                           value = 19, post = "%", step = 1.0),
-               sliderInput("md_radius", "Replacement Radius", min = 2, max = 15,
-                           value = 8, post = "px"),
-               actionButton("reset", "Reset")
-             )),
+    inputPanel(
+      sliderInput("trim", "Edge crop strength", min = 0, max = 50,
+                  value = 25),
+      # for radius, there are really only discrete options, 
+      # see https://imagemagick.org/Usage/morphology/#disk
+      selectInput("k_radius", "Detection Radius", 
+                  choices = c(1, 1.5, 2.0, 2.5, 2.9, 3.5, 3.9, 4.3, 4.5, 5.3),
+                  selected = 2.9, width = "50%"),
+      sliderInput("threshold", "Detection Threshold", min = 1, max = 25,
+                  value = 19, post = "%", step = 1.0),
+      sliderInput("md_radius", "Replacement Radius", min = 2, max = 15,
+                  value = 8, post = "px"),
+      actionButton("reset", "Reset")
     ),
     tabsetPanel(type = "tabs",
                 tabPanel("Single",
-                         column(12, 
-                                inputPanel(
+                         inputPanel(
                                   fileInput("file1", "Upload .jpg file", accept = ".jpg"),
-                                  checkboxInput("showDust", "Show dust", TRUE),
+                                  # checkboxInput("showDust", "Show dust", TRUE),
                                   checkboxInput("showOriginal", "Show original", FALSE),
                                   sliderInput("zoom", "Image Zoom", min = 1, max = 400, 
                                               value = 100, post = "%"),
                                   downloadButton("download", "Download dusted image")
-                                )),
+                                ),
                          fluidRow(
-                           shinydashboard::box(width = 12, 
-                                               style='width:600px;overflow-x: scroll;height:400px;overflow-y: scroll;',
-                                               plotOutput("p1", width = "100%")
+                           shinydashboard::box(width = 6, 
+                                               style='overflow-x: scroll;height:400px;overflow-y: scroll;',
+                                               plotOutput("p1")
+                           ),
+                           shinydashboard::box(width = 6, 
+                                                 style='overflow-x: scroll;height:400px;overflow-y: scroll;',
+                                                 plotOutput("pd")
                            )),
-                         fluidRow(
-                           conditionalPanel(
+                         conditionalPanel(
                              condition = "input.showOriginal",
-                             strong("Original:"),
+                             titlePanel("Original:"),
                              shinydashboard::box(width = 12, 
-                                                 style='width:600px;overflow-x: scroll;height:400px;overflow-y: scroll;',
-                                                 plotOutput("p0", width = "100%"))
-                           )),
-                         fluidRow(
-                           conditionalPanel(
-                             condition = "input.showDust",
-                             strong("Dust:"),
-                             shinydashboard::box(width = 6, 
-                                                 style='width:600px;overflow-x: scroll;height:400px;overflow-y: scroll;',
-                                                 plotOutput("pd", width = "100%"))
-                           ))
+                                                 style='overflow-x: scroll;height:400px;overflow-y: scroll;',
+                                                 plotOutput("p0"))
+                           )
                 ),
     tabPanel("Instructions",
              strong("How to use the single-image tool."),
@@ -133,7 +124,8 @@ server <- function(input, output, session){
         }
       }
       # scale is fit image to window height
-      sc <- 600/i$h #400 pix is height defined above
+      sc <- 400/i$h #400 pix is height defined above
+      # zoom is user-selected magnification
       z <- req(input$zoom)
       # zoom, keep integer and not smaller than min_pix (some distortion possible)
       max(ceiling(p * sc * z/100), min_pix)
