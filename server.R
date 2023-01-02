@@ -87,7 +87,8 @@ server <- function(input, output, session){
   
   #get image and its metadata
   i_raw <- reactive({
-    i_file <- "data/Dust1_323x302.jpg" #default during development
+    req(input$file1)
+    # i_file <- "data/Dust1_323x302.jpg" #default during development
     if (is.data.frame(input$file1)) i_file <- req(input$file1$datapath)
     # i_file <-  "data/Dust1_323x302.jpg"
     img <- image_read(i_file) |> 
@@ -190,4 +191,4 @@ server <- function(input, output, session){
 
 
 ### Run Application
-shinyApp(ui, server, options = list("launch.browser" = TRUE))
+# shinyApp(ui, server, options = list("launch.browser" = TRUE))
