@@ -30,7 +30,7 @@ ui <- fluidPage(
                                   # checkboxInput("showDust", "Show dust", TRUE),
                                   checkboxInput("showOriginal", "Show original", FALSE),
                                   sliderInput("zoom", "Image Zoom", min = 1, max = 400, 
-                                              value = 100, post = "%"),
+                                              value = 100, post = "%", step = 10),
                                   selectInput("download_type", "Download file type",
                                               choices = c("jpg", "png", "tif"), 
                                               selected = "jpg",
@@ -40,11 +40,13 @@ ui <- fluidPage(
                          fluidRow(
                            shinydashboard::box(width = 6, 
                                                style='overflow-x: scroll;height:400px;overflow-y: scroll;',
-                                               plotOutput("p1")
+                                               plotOutput("p1") |> 
+                                              shinycssloaders::withSpinner(color="blue")
                            ),
                            shinydashboard::box(width = 6, 
                                                  style='overflow-x: scroll;height:400px;overflow-y: scroll;',
-                                                 plotOutput("pd")
+                                                 plotOutput("pd") |> 
+                                                 shinycssloaders::withSpinner(color="blue")
                            )),
                          conditionalPanel(
                              condition = "input.showOriginal",
