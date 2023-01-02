@@ -19,16 +19,22 @@ ui <- fluidPage(
                   value = 19, post = "%", step = 1.0),
       sliderInput("md_radius", "Replacement Radius", min = 2, max = 15,
                   value = 8, post = "px"),
+      sliderInput("f_radius", "Fatten dust", min = 1, max = 10,
+                  value = 1.5, post = "px", step = 0.1),
       actionButton("reset", "Reset")
     ),
     tabsetPanel(type = "tabs",
                 tabPanel("Single",
                          inputPanel(
-                                  fileInput("file1", "Upload .jpg file", accept = ".jpg"),
+                                  fileInput("file1", "Upload image file", accept = c(".jpg", ".png", ".tif")),
                                   # checkboxInput("showDust", "Show dust", TRUE),
                                   checkboxInput("showOriginal", "Show original", FALSE),
                                   sliderInput("zoom", "Image Zoom", min = 1, max = 400, 
                                               value = 100, post = "%"),
+                                  selectInput("download_type", "Download file type",
+                                              choices = c("jpg", "png", "tif"), 
+                                              selected = "jpg",
+                                              width = "50%"),
                                   downloadButton("download", "Download dusted image")
                                 ),
                          fluidRow(
