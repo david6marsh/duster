@@ -56,7 +56,9 @@ ui <- fluidPage(
              p("3. Check the dust. If not enough is being found, increase the detection radius or reduce the detection threshold. It's likely that some larger pieces will escape"),
              p("4. Check the dust again. If it is showing real structure from the image (eg mouth, fabric texture), increase the detection threshold."),
              p("5. When you're happy, download the image to your browser's default download folder."),
-             p("Reset: returns to default values.")
+             p("Reset: returns to default values."),
+             div(),
+             p("For more details and licensing, see ", a(href = "https://github.com/david6marsh/duster", "the github page."))
     )
     ))
 )
